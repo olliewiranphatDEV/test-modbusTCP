@@ -14,6 +14,7 @@ async function readFloatFromRegisters(startAddress) {
     try {
         // Connect to TCP device
         await client.connectTCP("49.0.79.169", { port: 502 });
+        client.setTimeout(500); // เพิ่ม timeout เป็น 500 m
         client.setID(1);
 
         // - Read 2 registers (4 bytes)
@@ -39,6 +40,7 @@ async function readLongFromRegisters(startAddress) {
     try {
         // Connect to TCP device
         await client.connectTCP("49.0.79.169", { port: 502 });
+        client.setTimeout(500); // เพิ่ม timeout เป็น 500 m
         client.setID(1);
 
         const data = await client.readHoldingRegisters(startAddress, 2);
