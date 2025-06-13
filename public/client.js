@@ -1,3 +1,12 @@
+document.getElementById('flowRate').textContent = data.flowRate_m3h?.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+}) ?? 'null';
+
+document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+
+
+
 async function getFlowRate() {
     console.log("Flow");
 
@@ -31,6 +40,8 @@ async function getNetAccumulator() {
 }
 
 window.onload = function () {
-    getFlowRate();
-    getNetAccumulator();
+    setInterval(() => {
+        getFlowRate();
+        getNetAccumulator();
+    }, 10000);
 };

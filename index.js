@@ -14,11 +14,13 @@ async function readFloatFromRegisters(startAddress) {
     try {
         // Connect to TCP device
         await client.connectTCP("49.0.79.169", { port: 502 });
-        client.setTimeout(500); // เพิ่ม timeout เป็น 500 m
+        client.setTimeout(1000); // เพิ่ม timeout เป็น 500 m
         client.setID(1);
 
         // - Read 2 registers (4 bytes)
         const data = await client.readHoldingRegisters(startAddress, 2);
+        console.log("Reading from startAddress:", startAddress);
+        console.log("Raw Register Data:", data.data);
 
         // Convert 2 x 16-bit into 1 x 32-bit float
         const buf = Buffer.alloc(4);
@@ -34,6 +36,7 @@ async function readFloatFromRegisters(startAddress) {
         return buf.readFloatBE(0); //Flow Rate - float (REAL4)
     } catch (err) {
         console.error("readFloatFromRegisters ERROR:", err.message);
+        try { await client.close(); } catch (_) { } // client.close() ถูกเรียกเสมอ แม้ในกรณี catch
         return null;
     }
 }
@@ -45,10 +48,11 @@ async function readLongFromRegisters(startAddress) {
     try {
         // Connect to TCP device
         await client.connectTCP("49.0.79.169", { port: 502 });
-        client.setTimeout(500); // เพิ่ม timeout เป็น 500 m
+        client.setTimeout(1000); // เพิ่ม timeout เป็น 500 m
         client.setID(1);
 
         const data = await client.readHoldingRegisters(startAddress, 2);
+        console.log("Reading from startAddress:", startAddress);
         console.log("Raw Register Data:", data.data);
 
         const buf = Buffer.alloc(4);
@@ -65,6 +69,7 @@ async function readLongFromRegisters(startAddress) {
         return buf.readInt32BE(0); // ใช้กับ LONG
     } catch (error) {
         console.error("readLongFromRegisters ERROR:", error.message);
+        try { await client.close(); } catch (_) { } // client.close() ถูกเรียกเสมอ แม้ในกรณี catch
         return null;
     }
 }
@@ -78,7 +83,7 @@ app.get('/', (req, res) => {
 // Route to get Flow Rate from register 0001-0002
 app.get("/flow-rate", async (req, res) => {
     const result = await readFloatFromRegisters(0); // startAddress = 0
-    res.json({ flowRate_m3h: result });
+    res.json({ flowRate_m3h: parseFloat(result.toFixed(2)) });
 });
 
 // Route to get Net Accumulator from register 0025-0026
