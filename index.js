@@ -34,8 +34,8 @@ async function readFloatFromRegisters(startAddress) {
         }
 
         return buf.readFloatBE(0); //Flow Rate - float (REAL4)
-    } catch (err) {
-        console.error("readFloatFromRegisters ERROR:", err.message);
+    } catch (error) {
+        console.error("readFloatFromRegisters ERROR:", error.message);
         try { await client.close(); } catch (_) { } // client.close() ถูกเรียกเสมอ แม้ในกรณี catch
         return null;
     }
@@ -82,14 +82,24 @@ app.get('/', (req, res) => {
 
 // Route to get Flow Rate from register 0001-0002
 app.get("/flow-rate", async (req, res) => {
-    const result = await readFloatFromRegisters(0); // startAddress = 0
-    res.json({ flowRate_m3h: parseFloat(result.toFixed(2)) });
+    try {
+        const result = await readFloatFromRegisters(0); // startAddress = 0
+        if (result === null) throw new Error("No data");
+        res.json({ flowRate_m3h: parseFloat(result.toFixed(2)) });
+    } catch (err) {
+        res.status(500).json({ status: "error", message: err.message });
+    }
 });
 
 // Route to get Net Accumulator from register 0025-0026
 app.get("/net-accumulator", async (req, res) => {
-    const result = await readLongFromRegisters(24); // 0025 = index 24
-    res.json({ netAccumulator: result });
+    try {
+        const result = await readLongFromRegisters(24); // 0025 = index 24
+        if (result === null) throw new Error("No data");
+        res.json({ netAccumulator: result });
+    } catch (err) {
+        res.status(500).json({ status: "error", message: err.message });
+    }
 });
 
 app.listen(port, () => {
