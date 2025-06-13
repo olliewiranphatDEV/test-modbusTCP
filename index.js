@@ -22,9 +22,14 @@ async function readFloatFromRegisters(startAddress) {
 
         // Convert 2 x 16-bit into 1 x 32-bit float
         const buf = Buffer.alloc(4);
-        buf.writeUInt16BE(data.data[0], 0);
-        buf.writeUInt16BE(data.data[1], 2);
+        buf.writeUInt16BE(data.data[1], 0);
+        buf.writeUInt16BE(data.data[0], 2);
         await client.close(); // disconnect ทันที
+
+        if (!data || !data.data || data.data.length < 2) {
+            await client.close(); // CLOSE CONNECTION ALTHOUGH ERROR
+            throw new Error("Invalid Modbus response");
+        }
 
         return buf.readFloatBE(0); //Flow Rate - float (REAL4)
     } catch (err) {
@@ -47,14 +52,15 @@ async function readLongFromRegisters(startAddress) {
         console.log("Raw Register Data:", data.data);
 
         const buf = Buffer.alloc(4);
-        buf.writeUInt16BE(data.data[1], 0);
-        buf.writeUInt16BE(data.data[0], 2);
+        buf.writeUInt16BE(data.data[1], 0); //0001
+        buf.writeUInt16BE(data.data[0], 2); //0002
+        await client.close(); // disconnect ทันที
 
         if (!data || !data.data || data.data.length < 2) {
+            await client.close(); // CLOSE CONNECTION ALTHOUGH ERROR
             throw new Error("Invalid Modbus response");
         }
 
-        await client.close(); // disconnect ทันที
 
         return buf.readInt32BE(0); // ใช้กับ LONG
     } catch (error) {
@@ -71,7 +77,7 @@ app.get('/', (req, res) => {
 
 // Route to get Flow Rate from register 0001-0002
 app.get("/flow-rate", async (req, res) => {
-    const result = await readFloatFromRegisters(1); // 0001
+    const result = await readFloatFromRegisters(0); // startAddress = 0
     res.json({ flowRate_m3h: result });
 });
 
