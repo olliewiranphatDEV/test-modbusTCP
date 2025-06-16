@@ -10,15 +10,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // อ่านค่าที่เป็น float (REAL4) - Flow Rate
 async function readFloatFromRegisters(startAddress) {
-    const client = new ModbusRTU(); // สร้างใหม่ทุกครั้ง
+    const client = new ModbusRTU(); // สร้าง connection ใหม่ทุกครั้ง
     try {
         // Connect to TCP device
         await client.connectTCP("49.0.79.169", { port: 502 });
-        client.setTimeout(1000); // เพิ่ม timeout เป็น 500 m
+        console.log("Connected.");
+
+        client.setTimeout(3000); // FOR FETCHING DATA
         client.setID(1);
 
         // - Read 2 registers (4 bytes)
         const data = await client.readHoldingRegisters(startAddress, 2);
+
+        if (!data || !data.data || data.data.length < 2) {
+            throw new Error("Invalid Modbus response");
+        }
+
         console.log("Reading from startAddress:", startAddress);
         console.log("Raw Register Data:", data.data);
 
@@ -26,52 +33,70 @@ async function readFloatFromRegisters(startAddress) {
         const buf = Buffer.alloc(4);
         buf.writeUInt16BE(data.data[1], 0);
         buf.writeUInt16BE(data.data[0], 2);
-        await client.close(); // disconnect ทันที
-
-        if (!data || !data.data || data.data.length < 2) {
-            await client.close(); // CLOSE CONNECTION ALTHOUGH ERROR
-            throw new Error("Invalid Modbus response");
-        }
 
         return buf.readFloatBE(0); //Flow Rate - float (REAL4)
     } catch (error) {
         console.error("readFloatFromRegisters ERROR:", error.message);
-        try { await client.close(); } catch (_) { } // client.close() ถูกเรียกเสมอ แม้ในกรณี catch
         return null;
+    } finally {
+        console.log("TRYING TO DISCONNECT...");
+        try {
+            await Promise.race([
+                client.close(),
+                new Promise(resolve => setTimeout(resolve, 1000))
+            ]);
+            console.log("DISCONNECTED!");
+        } catch (closeErr) {
+            console.error("Error while disconnecting:", closeErr.message);
+        }
     }
+
+
 }
 
 
 // อ่านค่าที่เป็น signed integer 32-bit (LONG) - Net Accumulator
 async function readLongFromRegisters(startAddress) {
-    const client = new ModbusRTU(); // สร้างใหม่ทุกครั้ง
+    const client = new ModbusRTU(); // สร้าง connection ใหม่ทุกครั้ง
     try {
         // Connect to TCP device
         await client.connectTCP("49.0.79.169", { port: 502 });
-        client.setTimeout(1000); // เพิ่ม timeout เป็น 500 m
+        console.log("Connected.");
+
+        client.setTimeout(3000); // // FOR FETCHING DATA
         client.setID(1);
 
         const data = await client.readHoldingRegisters(startAddress, 2);
+
+        if (!data || !data.data || data.data.length < 2) {
+            throw new Error("Invalid Modbus response");
+        }
+
         console.log("Reading from startAddress:", startAddress);
         console.log("Raw Register Data:", data.data);
 
         const buf = Buffer.alloc(4);
         buf.writeUInt16BE(data.data[1], 0); //0001
         buf.writeUInt16BE(data.data[0], 2); //0002
-        await client.close(); // disconnect ทันที
-
-        if (!data || !data.data || data.data.length < 2) {
-            await client.close(); // CLOSE CONNECTION ALTHOUGH ERROR
-            throw new Error("Invalid Modbus response");
-        }
-
 
         return buf.readInt32BE(0); // ใช้กับ LONG
     } catch (error) {
         console.error("readLongFromRegisters ERROR:", error.message);
-        try { await client.close(); } catch (_) { } // client.close() ถูกเรียกเสมอ แม้ในกรณี catch
         return null;
+    } finally {
+        console.log("TRYING TO DISCONNECT...");
+        try {
+            await Promise.race([
+                client.close(),
+                new Promise(resolve => setTimeout(resolve, 1000))
+            ]);
+            console.log("DISCONNECTED!");
+        } catch (closeErr) {
+            console.error("Error while disconnecting:", closeErr.message);
+        }
     }
+
+
 }
 
 // default route
